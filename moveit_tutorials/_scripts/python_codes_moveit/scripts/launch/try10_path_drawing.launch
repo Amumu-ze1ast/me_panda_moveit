@@ -1,0 +1,6 @@
+<launch>
+
+  <node name="try10_path_drawing" pkg="moveit_tutorials" type="try10_path_drawing" respawn="false" output="screen">
+  </node>
+
+</launch>
