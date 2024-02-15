@@ -51,46 +51,37 @@ int main(int argc, char** argv)
             std::ostream_iterator<std::string>(std::cout, ", "));
 
   
-  // Start the demo
-  visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to start the demo");
 
 
-
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-  // Planning to a Pose goal
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-
-  geometry_msgs::Pose target_pose1;
-  target_pose1.orientation.w = 1.0;
-  target_pose1.position.x = 0.4;
-  target_pose1.position.y = 0.6;
-  target_pose1.position.z = 0.4;
-  move_group.setPoseTarget(target_pose1);
-
-  // call the planner to compute the plan and visualize it.
-  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+  moveit::planning_interface::MoveGroupInterface::Plan my_plan;  
   bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
-  ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
 
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+  // Planning to a joint-space goal. 
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //  
+  
+  
+  moveit::core::RobotStatePtr current_state = move_group.getCurrentState();   
 
-  // Visualizing plans
-  ROS_INFO_NAMED("tutorial", "Visualizing plan 1 as trajectory line");
-  visual_tools.publishAxisLabeled(target_pose1, "pose1");
-  visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
+  std::vector<double> joint_group_positions;   
+  current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+  joint_group_positions[0] = -1.0;  // radians   
+  move_group.setJointValueTarget(joint_group_positions);
+
+  success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+  // Visualize the plan in RViz
+  visual_tools.deleteAllMarkers();
+  visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
   visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
   visual_tools.trigger();
   
   visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+  
+  move_group.move();
 
-
-  // Plan and execute the motion
-  if (success) {
-      move_group.execute(my_plan);
-  } else {
-      ROS_ERROR("Failed to plan motion to target position");
-  }
-
-   ros::shutdown();
+    ros::shutdown();
   return 0;
 }
